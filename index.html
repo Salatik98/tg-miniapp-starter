@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Telegram Mini App • Starter</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    :root { --pad: 16px; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, 'Noto Sans', sans-serif;
+      margin: 0; padding: var(--pad);
+      background: #ffffff; color: #111111;
+    }
+    h1 { margin: 0 0 8px 0; font-weight: 700; }
+    .card {
+      border-radius: 16px; padding: 16px; margin: 12px 0;
+      box-shadow: 0 1px 4px rgba(0,0,0,.08);
+      background: rgba(255,255,255,.8);
+      backdrop-filter: blur(2px);
+    }
+    button {
+      padding: 12px 16px; border: 0; border-radius: 10px;
+      font-size: 16px; cursor: pointer; margin-right: 8px; margin-bottom: 8px;
+    }
+    pre {
+      white-space: pre-wrap; word-break: break-word; margin: 0;
+      font: 13px/1.4 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
+      background: #f5f5f5; padding: 8px; border-radius: 8px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Привет из мини‑аппа 👋</h1>
+  <div id="tg-warning" class="card" style="display:none">
+    Открой это приложение из Telegram, чтобы увидеть свои данные пользователя.
+  </div>
+
+  <div id="user" class="card"></div>
+
+  <div class="card">
+    <button id="btn-main">Показать Main Button</button>
+    <button id="btn-haptic">Haptic feedback</button>
+  </div>
+
+  <div id="debug" class="card">
+    <strong>initData (debug):</strong>
+    <pre id="initData"></pre>
+  </div>
+
+  <script>
+    const tg = window.Telegram?.WebApp;
+
+    function renderUser(u){
+      const el = document.getElementById('user');
+      if(!u){
+        el.innerHTML = "<em>Пользователь не определён. Открой через Telegram.</em>";
+        return;
+      }
+      const name = [u.first_name, u.last_name].filter(Boolean).join(' ');
+      el.innerHTML = \`
+        <div><strong>Имя:</strong> \${name || '—'}</div>
+        <div><strong>@username:</strong> \${u.username ? '@'+u.username : '—'}</div>
+        <div><strong>ID:</strong> \${u.id}</div>
+        <div><strong>Язык:</strong> \${u.language_code || '—'}</div>
+      \`;
+    }
+
+    if(!tg){
+      document.getElementById('tg-warning').style.display = 'block';
+    }else{
+      tg.ready();
+      tg.expand(); // занимаем побольше высоты
+
+      // Синхронизируем тему (если в Телеге тёмная/светлая)
+      document.body.style.background = tg.themeParams.bg_color || '#fff';
+      document.body.style.color = tg.themeParams.text_color || '#111';
+
+      const user = tg.initDataUnsafe?.user;
+      renderUser(user);
+
+      document.getElementById('initData').textContent = tg.initData || '(пусто)';
+
+      // Main Button demo
+      const btnMain = document.getElementById('btn-main');
+      btnMain.addEventListener('click', () => {
+        if (tg.MainButton.isVisible){
+          tg.MainButton.hide();
+          btnMain.textContent = 'Показать Main Button';
+        } else {
+          tg.MainButton.setText('Отправить данные боту');
+          tg.MainButton.onClick(() => {
+            const payload = JSON.stringify({action:'demo_submit', user_id: user?.id || null});
+            tg.sendData(payload); // бот получит web_app_data
+            tg.close(); // закроем webapp
+          });
+          tg.MainButton.show();
+          btnMain.textContent = 'Спрятать Main Button';
+        }
+      });
+
+      // Haptic feedback
+      document.getElementById('btn-haptic').addEventListener('click', () => {
+        try{ tg.HapticFeedback.impactOccurred('medium'); }catch(e){}
+      });
+    }
+  </script>
+</body>
+</html>
